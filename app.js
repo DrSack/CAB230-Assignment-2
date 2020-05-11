@@ -1,10 +1,9 @@
-const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const swaggerUI = require('swagger-ui-express');
-const swaggerDocument = require('./docs/swaggerpet.json');
+const swaggerDocument = require('./docs/swagger.json');
 require("dotenv").config();
 
 const helmet = require('helmet');
