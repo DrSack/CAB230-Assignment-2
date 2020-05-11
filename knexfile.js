@@ -2,7 +2,7 @@ module.exports = {
     client: 'mysql',
     connection: {
     host: '127.0.0.1',
-    database: 'world',
+    database: 'webcomputing',
     user: 'root',
     password: 'Cab230!'
     }
