@@ -80,10 +80,18 @@ router.get("/:symbol",function(req,res,next) {
    })
 }); 
 
+
+/*
+authorize function
+
+Read header and ensure that a bearer JWT token is inputted to grant access to authenticated stocks.
+
+returns status: 403 = Missing header, invalid signature.
+*/
+
 const authorize = (req, res, next) => {
   const authorization = req.headers.authorization;
   let token = null;
-
   if(authorization && authorization.split(" ").length === 2){
     token = authorization.split(" ")[1];
     console.log("Token: ", token)
@@ -112,7 +120,14 @@ const authorize = (req, res, next) => {
     }
 }
 
-   //update the population
+/*
+ROUTE: stocks/authed/:symbol
+
+Display authenticated stocks data
+
+returns status: 200 = success, 400 = incorrect paramters, 404 = not within database
+*/
+
 router.get('/authed/:symbol', authorize, (req, res) => {
   const from = req.query.from;
   const to = req.query.to;
@@ -161,39 +176,31 @@ else{
   try{
     let fromD=""; let toD="";
     if(from){
-      console.log(from);
-      fromD  = new Date(from)
+      fromD  = new Date(from)//Validate date string
       if(fromD.getUTCHours() >= 14){
         fromD.setDate(fromD.getDate()+1);
       }
     }
-    if(to){
-      toD = new Date(to);
-    }
-    if(toD !== "" && fromD !== ""){
-      select = select.whereBetween("timestamp", [fromD, toD]);
-    }
+    if(to){ toD = new Date(to);}
+    if(toD !== "" && fromD !== ""){select = select.whereBetween("timestamp", [fromD, toD]);}//If both exists
     else if(from)
-    {
-      console.log("ass");
+    {// Return if from only exists
       select = select.where('timestamp', '>=', fromD)
-    }
-    else{
-      select = select.whereBetween("timestamp", [fromD, toD]);
-    }
+    }//if toD exists
+    else{select = select.whereBetween("timestamp", [fromD, toD]);}
   }
   catch(e)
-  {
+  {//catch date parsing error
     res.status(400).json({"error": true, "message": "From date cannot be parsed by Date.parse()"});
     console.log(e);
     return;
   }
     select
     .then((rows) => {
-      if(rows.length > 0){
+      if(rows.length > 0){//if exists
         return res.status(200).json(rows);
       }
-      else{
+      else{//If no rows exist
         res.status(404).json({"error": true, "message": "No entry for symbol in stocks database"})
       }
     })
@@ -204,9 +211,9 @@ else{
 }
 });
   
-  
+//Catch any other routes and return error.
 router.get('*', function(req,res){
-  res.json({error : true, "message" : "Not found"})
+  res.status(404).json({error : true, "message" : "Not found"})
 });
 
 module.exports = router;

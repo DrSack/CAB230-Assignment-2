@@ -1,4 +1,3 @@
-const mysql = require('mysql');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 var express = require('express');
