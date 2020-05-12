@@ -51,7 +51,7 @@ app.get('/',swaggerUI.setup(swaggerDocument));
 
 // catch unused routes and display error
 app.use(function(req, res, next) {
-  res.json({error : true, "message" : "Not found"})
+  res.status(404).json({error : true, "message" : "Not found"})
 });
 
 module.exports = app;

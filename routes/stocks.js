@@ -52,20 +52,17 @@ returns status: 200 = Data, 400 = Invalid query, 404 = No entry for symbol.
 */
 
 router.get("/:symbol",function(req,res,next) {
-
   for(const key in req.query){//Check if from and to queries are in path.
     if(key === "from" || key === "to"){
       return res.status(400).json({"error": true, "message": "Date parameters only available on authenticated route /stocks/authed"})
     }
   }
- 
   for(const key in req.params.symbol){// check if the symbol param is uppercase
     const i = req.params.symbol[key]; 
     if(i == i.toLowerCase() || i != i.toUpperCase() || key > 4){
       return res.status(400).json({"error": true, "message": "Stock symbol incorrect format - must be 1-5 capital letters"})
     }
   }
-
   let select = req.db.from('stocks').select('*').where('symbol','=',req.params.symbol).groupBy('symbol');
    select
    .then((rows) => {
@@ -107,14 +104,93 @@ const authorize = (req, res, next) => {
       }
       next()
     }catch(e){
-      console.log("Token is not valid: ", e);
+      console.log("Token is not valid: ");
+      res.status(403).json(
+        { 
+          error: "true",
+          message: `invalid signature` });
     }
 }
 
    //update the population
 router.get('/authed/:symbol', authorize, (req, res) => {
-    res.json({"message" : true})
+  const from = req.query.from;
+  const to = req.query.to;
+
+  for(const key in req.query){//Check if from and to queries are in path.
+    if(key !== "from"){
+      if(key !== "to"){
+        return res.status(400).json({"error": true, "message": "Parameters allowed are from and to, example: /stocks/authed/AAL?from=2020-03-15"})
+      }
+    }
+    else if(key !== "to"){
+      if(key !== "from"){
+        return res.status(400).json({"error": true, "message": "Parameters allowed are from and to, example: /stocks/authed/AAL?from=2020-03-15"})
+      }
+    }
+  }
+
+  for(const key in req.params.symbol){// check if the symbol param is uppercase
+    const i = req.params.symbol[key]; 
+    if(i == i.toLowerCase() || i != i.toUpperCase() || key > 4){
+      return res.status(400).json({"error": true, "message": "Stock symbol incorrect format - must be 1-5 capital letters"})
+    }
+  }
+
+  if(!from && !to){
+    let select = req.db.from('stocks').select('*').where('symbol','=',req.params.symbol).groupBy('symbol');
+    select
+   .then((rows) => {
+     if(rows.length > 0){
+       let choice = rows[0];// take element out of array.
+       return res.status(200).json(choice);
+     }
+     else{
+       return res.status(404).json({"error": true, "message": "No entry for symbol in stocks database"});
+     }
+   })
+   .catch((err) => {
+   console.log(err);
+   res.json({"Error" : true, "message" : "Error executing MySQL query"})
+   return;
+   });
+}
+
+else{
+  let select = req.db.from('stocks').select('*').where('symbol','=',req.params.symbol)
+  try{
+    let fromD=""; let toD="";
+    if(from){
+      fromD  = new Date(from).toISOString();
+    }
+    if(to){
+      toD = new Date(to).toISOString();
+    }
+    select = select.whereBetween("timestamp", [fromD, toD]);
+  }
+  catch(e)
+  {
+    res.status(400).json({"error": true, "message": "From date cannot be parsed by Date.parse()"});
+    console.log(e);
+    return;
+  }
+
+    select
+    .then((rows) => {
+      if(rows.length > 0){
+        return res.status(200).json(rows);
+      }
+      else{
+        res.status(404).json({"error": true, "message": "No entry for symbol in stocks database"})
+      }
+    })
+    .catch((err) => {
+    console.log(err);
+    res.json({"Error" : true, "message" : "Error executing MySQL query"})
+    });
+}
 });
+  
   
 router.get('*', function(req,res){
   res.json({error : true, "message" : "Not found"})
