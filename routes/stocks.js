@@ -161,12 +161,26 @@ else{
   try{
     let fromD=""; let toD="";
     if(from){
-      fromD  = new Date(from).toISOString();
+      console.log(from);
+      fromD  = new Date(from)
+      if(fromD.getUTCHours() >= 14){
+        fromD.setDate(fromD.getDate()+1);
+      }
     }
     if(to){
-      toD = new Date(to).toISOString();
+      toD = new Date(to);
     }
-    select = select.whereBetween("timestamp", [fromD, toD]);
+    if(toD !== "" && fromD !== ""){
+      select = select.whereBetween("timestamp", [fromD, toD]);
+    }
+    else if(from)
+    {
+      console.log("ass");
+      select = select.where('timestamp', '>=', fromD)
+    }
+    else{
+      select = select.whereBetween("timestamp", [fromD, toD]);
+    }
   }
   catch(e)
   {
@@ -174,7 +188,6 @@ else{
     console.log(e);
     return;
   }
-
     select
     .then((rows) => {
       if(rows.length > 0){
