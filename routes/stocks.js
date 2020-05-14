@@ -144,7 +144,6 @@ router.get('/authed/:symbol', authorize, (req, res) => {
       }
     }
   }
-
   for(const key in req.params.symbol){// check if the symbol param is uppercase
     const i = req.params.symbol[key]; 
     if(i == i.toLowerCase() || i != i.toUpperCase() || key > 4){
