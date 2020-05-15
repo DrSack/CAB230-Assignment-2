@@ -1,7 +1,7 @@
 { "openapi":"3.0.0",
     "info":{
     "title":"Stocks API",
-    "description":"This is a simple Express API that displays data and stuff from the server",
+    "description":"This API has been created to support assignment work in the QUT Web Computing units for 2020. It exposes a small number of REST endpoints which implement CRUD operations on a database containing a snapshot of publicly available stock price data. The database includes entries - over a limited time frame - for a selected number of companies listed on our example Stock Exchange. There are three Query endpoints - GETs to allow you to retrieve data from the database - and two POST endpoints to manage User registration and login. Each of these endpoints is fairly straight forward and their usage is documented below. Note that the /stocks and /stocks/authed endpoints are similar in principle, but the latter endpoint offers additional functionality - the ability to select data based on a date range - that is available only to authenticated users. Note: All non-path query parameters are optional and must be lower case.",
     "version":"1.0.0"
     },
     "servers":[ 
@@ -12,14 +12,20 @@
     "basePath":"/api",
         "tags":[
         {
-            "name":"Queries",
-            "description":"General API description"
+            "name":"Queries"
         },
         {
-            "name":"Users",
-            "description":"API queries based on city and optional country code."
+            "name":"Users"
         }
- ],
+ ],"components":{
+    "securitySchemes":{
+        "bearerAuth":{
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        }
+    }
+ },
     "paths":{ 
         "/stocks/symbols":{
                 "get":{
@@ -243,156 +249,346 @@
             }},
             "/stocks/authed/{symbol}": { 
                 "get":{
+                    "security":[
+                        {
+                            "bearerAuth":[]
+                        }],
                     "tags":["Queries"],
-                    "summary":"List of cities and provinces based on country code",
-                    "description":"A full listing of cities and their provinces for the database",
+                    "summary":"Return entries of stock searched by symbol, optionally filtered by date.",
                     "operationId":"get_stocks_authed__symbol_",
                     "produces":["application/json"],
                     "parameters": [
                         {
                           "in": "path",
-                          "name": "CountryCode",
-                          "description": "Pass Country Code Here",
+                          "name": "symbol",
+                          "description": "The exchange symbol of the stock",
                           "required": true,
                           "schema": {
                             "type": "string",
-                              "Country": {
+                              "item": {
                                 "type": "string"
                               }
-                            }
+                            },
+                            "example": "AAL"
                         },
                         {
                             "in": "query",
-                            "name": "District",
-                            "description": "Pass District Here",
+                            "name": "from",
+                            "description": "Starting date of entries. Needs to be a string parsable for Date.Parse()",
                             "required": false,
                             "schema": {
-                              "type": "string",
-                                "Dis": {
-                                  "type": "string"
-                                }
-                              }
+                              "type": "string"
+                              },
+                              "example":"2020-03-15T00:00:00.000Z"
+                          },
+                          {
+                            "in": "query",
+                            "name": "to",
+                            "description": "Finishing date of entries. Needs to be a string parsable for Date.Parse()",
+                            "required": false,
+                            "schema": {
+                              "type": "string"
+                              },
+                              "example":"2020-03-20T00:00:00.000Z"
                           }
                       ],
+                      
                       
                     "responses":
                     {
                         "200":
+                        {
+                            "description": "One or more stock entries that meet the search criteria. By default, the response will be a single object. It at least one valid to or from query is supplied with a valid date then the response will be an array of stock objects.",
+                            "content": 
                             {
-                                "description":"successful operation",
-                                "schema":{
-                                    "type": "object",
-                                    "properties":{
-                                        "Error":{
-                                            "type": "string",
-                                            "enum": ["true","false"]
-                                        },
-                                        "Message":{
-                                          "type":"string",
-                                          "enum":["Success","Failure"]  
-                                        },
-                                        "City":{
-                                            "tpye":"array",
-                                            "items":{
-                                                "type":"object",
-                                                "properties":{
-                                                    "name":{
-                                                        "type":"string"
-                                                    },
-                                                    "district":{
-                                                        "type":"string"
-                                                    }
+                                "application/json": {
+                                    "schema": {
+                                            "type": "object",
+                                            "properties":{
+                                                "timestamp":{
+                                                    "type": "string", 
+                                                    "example": "2020-03-22T14:00:00.000Z"
+                                                },
+                                                "symbol":{
+                                                    "type": "string", 
+                                                    "example": "AAL"
+                                                },
+                                                "name":{
+                                                    "type": "string", 
+                                                    "example": "American Airlines Group"
+                                                },
+                                                "industry":{
+                                                    "type": "string", 
+                                                    "example": "Industrials"
+                                                },
+                                                "open":{
+                                                    "type": "number", 
+                                                    "example": 10.9
+                                                },
+                                                "high":{
+                                                    "type": "number", 
+                                                    "example": 11.36
+                                                },
+                                                "low":{
+                                                    "type": "number", 
+                                                    "example": 10.01
+                                                },
+                                                "close":{
+                                                    "type": "number", 
+                                                    "example": 10.25
+                                                },
+                                                "volumes":{
+                                                    "type": "number", 
+                                                    "example": 55491000
                                                 }
                                             }
-                                        }
                                     }
                                 }
                             }
+                        },
+                        "400":
+                        {
+                            "description": "Invalid query parameter or date format",
+                                "content": 
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                                "type": "object",
+                                                "properties":{
+                                                    "error":{
+                                                        "type": "bool",
+                                                        "example": true
+                                                    },
+                                                    "message":{
+                                                        "type": "string", 
+                                                        "example": "Parameters allowed are 'from' and 'to', example: /stocks/authed/AAL?from=2020-03-15"
+                                                    }
+                                                }
+                                        }
+                                    }
+                                }
+                        },
+                        "403":
+                        {
+                            "description": "Access denied",
+                                "content": 
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                                "type": "object",
+                                                "properties":{
+                                                    "error":{
+                                                        "type": "bool",
+                                                        "example": true
+                                                    },
+                                                    "message":{
+                                                        "type": "string", 
+                                                        "example": "Authorization header not found"
+                                                    }
+                                                }
+                                        }
+                                    }
+                                }
+                        },
+                        "404":
+                        {
+                            "description": "Queried data not found",
+                                "content": 
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                                "type": "object",
+                                                "properties":{
+                                                    "error":{
+                                                        "type": "bool",
+                                                        "example": true
+                                                    },
+                                                    "message":{
+                                                        "type": "string", 
+                                                        "example": "No entries available for query symbol for supplied date range"
+                                                    }
+                                                }
+                                        }
+                                    }
+                                }
+                        }
                     }
                 }},
                 "/user/register": { 
                 "post":{
                     "tags":["Users"],
-                    "summary":"List of cities and provinces",
-                    "description":"A full listing of cities and their provinces for the database",
-                    "operationId":"listCitiesAndDistricts",
+                    "summary":"Create a new user account",
+                    "requestBody":{
+                        "description":"User object to be registered",
+                        "required":true,
+                        "content":{
+                            "application/json":{
+                                "schema": {
+                                    "type": "object",
+                                    "properties":{
+                                        "email":{
+                                            "type": "string",
+                                            "example": "example@api.com"
+                                        },
+                                        "password":{
+                                            "type": "string", 
+                                            "example": "asdlkfj1"
+                                        }
+                                    }
+                            }
+                            }
+                        }
+                    },
+                    "operationId":"post_user_register",
                     "produces":["application/json"],
                     "responses":
                     {
-                        "200":
-                            {
-                                "description":"successful operation",
-                                "schema":{
-                                    "type": "object",
-                                    "properties":{
-                                        "Error":{
-                                            "type": "string",
-                                            "enum": ["true","false"]
-                                        },
-                                        "Message":{
-                                          "type":"string",
-                                          "enum":["Success","Failure"]  
-                                        },
-                                        "City":{
-                                            "tpye":"array",
-                                            "items":{
-                                                "type":"object",
+                        "201":
+                        {
+                            "description": "User created",
+                                "content": 
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                                "type": "object",
                                                 "properties":{
-                                                    "name":{
-                                                        "type":"string"
+                                                    "success":{
+                                                        "type": "bool",
+                                                        "example": true
                                                     },
-                                                    "district":{
-                                                        "type":"string"
+                                                    "message":{
+                                                        "type": "string", 
+                                                        "example": "User created"
                                                     }
                                                 }
-                                            }
                                         }
                                     }
                                 }
-                            }
+                        },
+                        "400":
+                        {
+                            "description": "Bad request",
+                                "content": 
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                                "type": "object",
+                                                "properties":{
+                                                    "error":{
+                                                        "type": "bool",
+                                                        "example": true
+                                                    },
+                                                    "message":{
+                                                        "type": "string", 
+                                                        "example": "Request body incomplete - email and password needed"
+                                                    }
+                                                }
+                                        }
+                                    }
+                                }
+                        },
+                        "409":
+                        {
+                            "description": "User already exists",
+                                "content": 
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                                "type": "object",
+                                                "properties":{
+                                                    "error":{
+                                                        "type": "bool",
+                                                        "example": true
+                                                    },
+                                                    "message":{
+                                                        "type": "string", 
+                                                        "example": "User already exists!"
+                                                    }
+                                                }
+                                        }
+                                    }
+                                }
+                        }
                     }
                 }
             },
             "/user/login": { 
                 "post":{
                     "tags":["Users"],
-                    "summary":"List of cities and provinces",
-                    "description":"A full listing of cities and their provinces for the database",
-                    "operationId":"listCitiesAndDistricts",
+                    "summary":"Log in to existing account",
+                    "requestBody":{
+                        "description":"User object to be registered",
+                        "required":true,
+                        "content":{
+                            "application/json":{
+                                "schema": {
+                                    "type": "object",
+                                    "properties":{
+                                        "email":{
+                                            "type": "string",
+                                            "example": "example@api.com"
+                                        },
+                                        "password":{
+                                            "type": "string", 
+                                            "example": "asdlkfj1"
+                                        }
+                                    }
+                            }
+                            }
+                        }
+                    },
+                    "operationId":"post_user_login",
                     "produces":["application/json"],
                     "responses":
                     {
                         "200":
-                            {
-                                "description":"successful operation",
-                                "schema":{
-                                    "type": "object",
-                                    "properties":{
-                                        "Error":{
-                                            "type": "string",
-                                            "enum": ["true","false"]
-                                        },
-                                        "Message":{
-                                          "type":"string",
-                                          "enum":["Success","Failure"]  
-                                        },
-                                        "City":{
-                                            "tpye":"array",
-                                            "items":{
-                                                "type":"object",
+                        {
+                            "description": "Log in successful",
+                                "content": 
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                                "type": "object",
                                                 "properties":{
-                                                    "name":{
-                                                        "type":"string"
+                                                    "token":{
+                                                        "type": "string",
+                                                        "example": "afakejsonwebtoken"
                                                     },
-                                                    "district":{
-                                                        "type":"string"
+                                                    "token_type":{
+                                                        "type": "string", 
+                                                        "example": "Bearer"
+                                                    },
+                                                    "expires":{
+                                                        "type": "integer", 
+                                                        "example": 86400
                                                     }
                                                 }
-                                            }
                                         }
                                     }
                                 }
-                            }
+                        },
+                        "401":
+                        {
+                            "description": "Log in failed",
+                                "content": 
+                                {
+                                    "application/json": {
+                                        "schema": {
+                                                "type": "object",
+                                                "properties":{
+                                                    "error":{
+                                                        "type": "bool",
+                                                        "example": true
+                                                    },
+                                                    "message":{
+                                                        "type": "string", 
+                                                        "example": "Incorrect password"
+                                                    }
+                                                }
+                                        }
+                                    }
+                                }
+                        }
                     }
                 }
             }
@@ -400,4 +596,5 @@
         }
     
 }
+
                 

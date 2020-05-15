@@ -99,7 +99,7 @@ const authorize = (req, res, next) => {
     else{
       res.status(403).json(
         { 
-          error: "true",
+          error: true,
           message: `Authorization header not found` });
       return;
     }
@@ -115,7 +115,7 @@ const authorize = (req, res, next) => {
       console.log("Token is not valid: ");
       res.status(403).json(
         { 
-          error: "true",
+          error: true,
           message: `invalid signature` });
     }
 }
