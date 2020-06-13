@@ -8,12 +8,9 @@ ST = Queensland
 L = Brisbane
 O = Queensland University of Technology
 OU = CAB230 Class 
-CN = www.localhost.com
+CN = 172.22.29.10
 [v3_req]
 keyUsage = critical, digitalSignature, keyAgreement
 extendedKeyUsage = serverAuth
-subjectAltName = @alt_names
-[alt_names]
-DNS.1 = www.localhost.com
-DNS.2 = localhost.com
-DNS.3 = localhost
+basicConstraints = CA:TRUE
+subjectAltName = IP:172.22.29.10

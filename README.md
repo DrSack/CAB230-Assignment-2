@@ -1,4 +1,8 @@
 # CAB230-Assignment-2
 npm install
 
-then either node app.js or npm start to start server.
+This is to install dependencies
+
+sudo npm start
+
+This is to start the server

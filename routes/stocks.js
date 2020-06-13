@@ -26,12 +26,11 @@ router.get("/symbols", function(req,res, next) {
   let code = req.query.industry;
   let select = req.db.from('stocks').select("symbol", "name", "industry").groupBy('symbol');
   if(code){
-    select = req.db.from('stocks').select("symbol", "name", "industry").where("industry",'=',code).groupBy('symbol')
+    select = req.db.from('stocks').select("symbol", "name", "industry").where("industry",'like',"%"+code+"%").groupBy('symbol')
   }
   select
   .then((rows) => {
     if(rows.length > 0){
-      res.statusCode = 200;
       return res.status(200).json(rows);
     }
     else{
@@ -144,13 +143,13 @@ router.get('/authed/:symbol', authorize, (req, res) => {
       }
     }
   }
+
   for(const key in req.params.symbol){// check if the symbol param is uppercase
     const i = req.params.symbol[key]; 
     if(i == i.toLowerCase() || i != i.toUpperCase() || key > 4){
       return res.status(400).json({"error": true, "message": "Stock symbol incorrect format - must be 1-5 capital letters"})
     }
   }
-
   if(!from && !to){
     let select = req.db.from('stocks').select('*').where('symbol','=',req.params.symbol).groupBy('symbol');
     select
@@ -168,19 +167,27 @@ router.get('/authed/:symbol', authorize, (req, res) => {
    res.json({"Error" : true, "message" : "Error executing MySQL query"})
    return;
    });
-}
-
+  }
+    
 else{
-  let select = req.db.from('stocks').select('*').where('symbol','=',req.params.symbol)
+  select = req.db.from('stocks').select('*').where('symbol','=',req.params.symbol)
   try{
     let fromD=""; let toD="";
     if(from){
-      fromD  = new Date(from)//Validate date string
+      if(isNaN(Date.parse(from)) == true){
+        return res.status(400).json({"error": true, "message": "From date cannot be parsed by Date.parse()"});//validate
+      }
+      fromD  = new Date(from)
       if(fromD.getUTCHours() >= 14){
         fromD.setDate(fromD.getDate()+1);
       }
     }
-    if(to){ toD = new Date(to);}
+    if(to){ 
+      if(isNaN(Date.parse(to)) == true){
+        return res.status(400).json({"error": true, "message": "From date cannot be parsed by Date.parse()"});//validate
+      }
+      toD = new Date(to); 
+    }
     if(toD !== "" && fromD !== ""){select = select.whereBetween("timestamp", [fromD, toD]);}//If both exists
     else if(from)
     {// Return if from only exists
@@ -200,15 +207,17 @@ else{
         return res.status(200).json(rows);
       }
       else{//If no rows exist
-        res.status(404).json({"error": true, "message": "No entry for symbol in stocks database"})
+        res.status(404).json({"error": true, "message": "No entries available for query symbol for supplied date range"})
       }
     })
     .catch((err) => {
     console.log(err);
     res.json({"Error" : true, "message" : "Error executing MySQL query"})
     });
-}
+  }
+
 });
+  
   
 //Catch any other routes and return error.
 router.get('*', function(req,res){
